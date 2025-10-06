@@ -1,16 +1,26 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from "@nestjs/common";
+import { ThrottlerGuard } from "@nestjs/throttler";
 
 @Injectable()
-export class LocationRateLimitGuard implements CanActivate {
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+// ThrottlerGuard already implements CanActivate internally
+export class LocationRateLimitGuard extends ThrottlerGuard {
+  protected generateKey(context: ExecutionContext, _suffix: string): string {
     const request = context.switchToHttp().getRequest();
     const locationId = request.body?.locationId;
-    
-    console.log(`Rate limit check for location: ${locationId}`);
-    
-    return true;
+
+    // Validate locationId
+    if (!locationId || typeof locationId !== "string") {
+      throw new NotFoundException("Invalid or missing locationId");
+    }
+
+    // Generate key: 'location:<locationId>'
+    return `location:${locationId}`;
   }
 }
